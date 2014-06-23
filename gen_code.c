@@ -43,11 +43,11 @@ void gen_program_start (PROGRAM *p)
   int offset = p->prog_block->block_syminfo->symtab_offset;
 
   /* .text ensures we are generating words into the instruction area */
-  gen ("\t.text\n");
+  gen ("\tsection .text\n");
 
   /* .globl ensures that "main" is seen by the rest of the run-time  */
   /* main: is the entry point to the program */
-  gen ("\t.globl main\n");
+  gen ("\t.global main\n");
   gen ("main:\n");
 
   /* initialize the stack pointer to refer to high end of the stack area */
@@ -64,7 +64,7 @@ void gen_program_start (PROGRAM *p)
   gen_inst ("sw % #(%)"    , REG_0, STATIC_CHAIN, REG_SP);
 
   /* set up the frame pointer */
-  gen_inst ("move % %"     , REG_FP, REG_SP);
+  gen_inst ("mov % %"     , REG_FP, REG_SP);
 
   /* allocate room for locals of main (globals of the program) */
   if (offset) {
@@ -81,7 +81,7 @@ void gen_program_block_end (PROGRAM *p)
   gen_inst ("li % 0", REG_V0);    /* need to return exit code of 0 */
 
   /* deallocate frame */
-  gen_inst ("move % %", REG_SP, REG_FP);
+  gen_inst ("mov % %", REG_SP, REG_FP);
 
   /* restore frame pointer */
   gen_inst ("lw % #(%)", REG_FP, DYNAMIC_CHAIN, REG_SP);
@@ -212,7 +212,7 @@ void gen_proc_start (PROCFUNCDEF *p)
   gen_label (p->proc_top_label);
   gen_inst ("sw % #(%)", REG_RA, RETURN_ADDR, REG_SP);
   gen_inst ("sw % #(%)", REG_FP, DYNAMIC_CHAIN, REG_SP);
-  gen_inst ("move % %", REG_FP, REG_SP);
+  gen_inst ("mov % %", REG_FP, REG_SP);
   if (offset) {
     gen_inst ("sub % % #", REG_SP, REG_SP, -offset);
     gen_inst ("ble % % STKOV", REG_SP, REG_SL);
@@ -221,7 +221,7 @@ void gen_proc_start (PROCFUNCDEF *p)
 
 void gen_proc_end (PROCFUNCDEF *p)
 {
-  gen_inst ("move % %", REG_SP, REG_FP);
+  gen_inst ("mov % %", REG_SP, REG_FP);
   gen_inst ("lw % #(%)", REG_FP, DYNAMIC_CHAIN, REG_SP);
   gen_inst ("lw % #(%)", REG_RA, RETURN_ADDR, REG_SP);
   gen_inst ("jr %", REG_RA);
@@ -290,10 +290,10 @@ void gen_assign (EXPR *te, EXPR *se)
     int sreg, treg;
     sreg = get_addr_in_reg (se, REG_A0);
     if (sreg != REG_A0)
-      gen_inst ("move % %", REG_A0, sreg);
+      gen_inst ("mov % %", REG_A0, sreg);
     treg = get_addr_in_reg (te, REG_A1);
     if (treg != REG_A1)
-      gen_inst ("move % %", REG_A1, treg);
+      gen_inst ("mov % %", REG_A1, treg);
     gen_inst ("li % #", REG_A2, tte->size);
     gen_inst ("jal copy");
     return;
@@ -666,7 +666,7 @@ void gen_load_addr (int reg, OBJECT *o)
     if (m->mem_offset)
       gen_inst ("la % #(%)", reg, m->mem_offset, REG_FP);
     else if (reg != REG_FP)
-      gen_inst ("move % %", reg, REG_FP);
+      gen_inst ("mov % %", reg, REG_FP);
   }
   else if (m->mem_plevel < level) {
     gen_inst ("lw % #(%)", reg, STATIC_CHAIN, REG_FP);
@@ -679,7 +679,7 @@ void gen_load_addr (int reg, OBJECT *o)
     if (m->mem_offset)
       gen_inst ("la % #(%)", reg, m->mem_offset, m->mem_plevel-1000);
     else if (reg != m->mem_plevel-1000)
-      gen_inst ("move % %", reg, m->mem_plevel-1000);
+      gen_inst ("mov % %", reg, m->mem_plevel-1000);
   }
   else
     assert (0);
@@ -900,7 +900,7 @@ void gen_expr_subscript (EXPR *e, EXPR *l, EXPR *r)
       else if (offset)
 	gen_inst ("add % % #", reg, lreg, offset);  /* address cases */
       else if (reg != lreg)
-	gen_inst ("move % %", reg, lreg);
+	gen_inst ("mov % %", reg, lreg);
       return;
     }
     else if (reg)
@@ -987,7 +987,7 @@ void gen_expr_field (EXPR *e, EXPR *l, EXPR *r)
     else if (offset)
       gen_inst ("add % % #", reg, lreg, offset);
     else if (reg != lreg)
-      gen_inst ("move % %", reg, lreg);
+      gen_inst ("mov % %", reg, lreg);
   }
   return;
 }
@@ -1039,7 +1039,7 @@ void gen_expr_deref (EXPR *e, EXPR *eu)
   if (is_non_addr_expr (e))
     gen_inst ("lw % 0(%)", reg, ureg);
   else if (ureg != reg)
-    gen_inst ("move % %", reg, ureg);
+    gen_inst ("mov % %", reg, ureg);
 }
 
 void gen_expr_unop (int op, EXPR *e, int reg)
@@ -1048,7 +1048,7 @@ void gen_expr_unop (int op, EXPR *e, int reg)
   case '+': {
     int ureg = get_expr_in_reg (e, reg);
     if (ureg != reg)
-      gen_inst ("move % %", reg, ureg);
+      gen_inst ("mov % %", reg, ureg);
     return;
   }
   case '-': {
@@ -1080,7 +1080,7 @@ void gen_expr_special (DECL *d, EXPRLIST *actuals)
       gen_expr (actual);
       reg = get_expr_in_reg (actual, REG_A0);
       if (reg != REG_A0)
-	gen_inst ("move % %", REG_A0, reg);
+	gen_inst ("mov % %", REG_A0, reg);
       gen_inst ("jal ~", (is_txt_type (actual->expr_type) ? "wstr" : "wint"));
     }
     if (spc == SpecialWriteln_)
@@ -1122,7 +1122,7 @@ void gen_expr_special (DECL *d, EXPRLIST *actuals)
     gen_inst ("sw % 0(%)", REG_T9, REG_SP);
 
     gen_inst ("li % 12", REG_V0);
-    gen_inst ("move % %", REG_A0, REG_SP);
+    gen_inst ("mov % %", REG_A0, REG_SP);
     gen_inst ("syscall");
     gen_inst ("add % % #", REG_SP, REG_SP, (count + 2) << 2);
     return;
