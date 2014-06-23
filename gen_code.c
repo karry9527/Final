@@ -1,5 +1,6 @@
-# include "project.h"
-# include "parse.tab.h"
+% include "project.h"
+% include "parse.tab.h"
+% include "libasm.h"
 
 /* a couple of useful helper functions, to assist in finding unneeded */
 /* bounds and range checks */
@@ -47,7 +48,7 @@ void gen_program_start (PROGRAM *p)
 
   /* .globl ensures that "main" is seen by the rest of the run-time  */
   /* main: is the entry point to the program */
-  gen ("\t.global main\n");
+  gen ("\tglobal main\n");
   gen ("main:\n");
 
   /* initialize the stack pointer to refer to high end of the stack area */
